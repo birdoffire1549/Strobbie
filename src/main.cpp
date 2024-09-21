@@ -88,7 +88,6 @@ void setup() {
   }
 
   // Initialize LEDs
-  actionColors[0] = CRGB::Red;
   FastLED.addLeds<WS2812B, DATA_PIN, GRB>(leds, NUM_LEDS);
   FastLED.clear();
   FastLED.clearData();
@@ -174,11 +173,15 @@ CRGB rgbStringToColor(String rgbString, uint beginIndex) {
  */
 void handleRoot() {
   static CRGB tempColors[MAX_COLORS] = {actionColors[0]};
-  static uint tempColorsSize = actionColorsSize;
-  static ulong tempDelay = actionDelay;
-  static String tempAction = "flashingColors";
-  
-  if (server.method() == HTTP_POST) {
+  static uint tempColorsSize = settings.getColorsSize();
+  static ulong tempDelay = settings.getActionDelay();
+  static String tempAction = settings.getActionName();
+
+  if (server.method() == HTTP_GET) {
+    for (uint i = 0; i < MAX_COLORS; i ++) {
+      tempColors[i] = actionColors[i];
+    }
+  } else if (server.method() == HTTP_POST) {
     String formDo = server.arg("do");
 
     // Handle various Form related 'DO' Actions...
@@ -236,10 +239,10 @@ void handleRoot() {
         argName.concat(String(i));
         colorHex[i] = server.arg(argName);
         if (colorsString.isEmpty()) {
-          colorsString.concat(colorHex[i]);
+          colorsString.concat(colorHex[i].substring(1));
         } else {
           colorsString.concat(":");
-          colorsString.concat(colorHex[i]);
+          colorsString.concat(colorHex[i].substring(1));
         }
       }
 
@@ -248,6 +251,7 @@ void handleRoot() {
       settings.setActionName(action);
       settings.setColors(colorsString);
       settings.setColorsSize(tempColorsSize);
+      settings.saveSettings();
 
       // TODO: Verify incoming data!!!
       

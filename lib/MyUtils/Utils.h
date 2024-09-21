@@ -5,7 +5,7 @@
     #include <MD5Builder.h>
     #include <map>
 
-    std::map<String, uint8> hexToDecDigitMap {
+    static std::map<String, uint8> hexToDecDigitMap {
         {"0", 0u},
         {"1", 1u},
         {"2", 2u},
@@ -24,7 +24,7 @@
         {"f", 15u}
     };
 
-    std::map<uint8, String> decToHexDigitMap {
+    static std::map<uint8, String> decToHexDigitMap {
         {0u, "0"},
         {1u, "1"},
         {2u, "2"},
