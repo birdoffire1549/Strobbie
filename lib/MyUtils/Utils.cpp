@@ -64,3 +64,32 @@ String Utils::rgbDecimalsToHex(uint8 red, uint8 green, uint8 blue) {
 
     return result;
 }
+
+/**
+ * Splits the given string up into multiple segments based on the given seporator. The
+ * split up data segments are stored into a given String based storage array of a specific
+ * size. If the storage array is too small for all of the data segments then it will be filled
+ * with what it has space for, and the rest will be discarded.
+ *
+ * @param string - The string to perform the operation on.
+ * @param separator - The character to use as a separator for the splitting process.
+ * @param storage - An array of strings for storage of the results of the splitting process.
+ * @param sizeOfStorage - The size of the storage array provided.
+*/
+void Utils::split(String string, char separator, String *storage, int sizeOfStorage) {
+  unsigned int index = 0;
+  for (int segmentIndex = 0; segmentIndex < sizeOfStorage && index < string.length(); segmentIndex++) { // iterate segment storage...
+    unsigned int startIndex = index;
+    for (;index < string.length(); index++) { // increment index though length of the string...
+      if (string.charAt(index) == separator) { // Found a separator...
+        storage[segmentIndex] = string.substring(startIndex, index);
+        index++;
+
+        break; // to allow segmentIndex to increment
+      } else if (index == (string.length() - 1)) { // at the end of the string...
+        index++;
+        storage[segmentIndex] = string.substring(startIndex, index);
+      }
+    }
+  }
+}

@@ -1,7 +1,7 @@
 /*
-  Application Title: Strobbie
-  Written by: Scott Griffis
-  Date: 09-17-2024
+  Application Title: ... Strobbie
+  Written by: .......... Scott Griffis
+  Date: ................ 09-17-2024
 
   Description:
   This application was written for an ESP8266 module to enable it to control
@@ -17,25 +17,31 @@
 
 #include <FastLED.h>
 #include <ESP8266WiFi.h>
+#include <DNSServer.h>
 #include <ESP8266WebServer.h> 
 #include <map>
 
 #include <Utils.h>
 #include <IpUtils.h>
+#include <Settings.h>
 
 #define DATA_PIN 5
 #define NUM_LEDS 11
 
-const String VERSION = "1.0.0";
+const String VERSION = "1.1.0";
 const unsigned int MAX_COLORS = 3u;
 const unsigned int PRIORITY_REDUCER =  70u;
+const IPAddress AP_IP(192, 168, 1, 1);
+const IPAddress SUBNET(255, 255, 255, 0);
 
 // Define the array of leds
 CRGB leds[NUM_LEDS];
+DNSServer dnsServer;
 ESP8266WebServer server(80);
 
 String deviceId = "";
 
+CRGB rgbStringToColor(String rgbString, uint beginIndex);
 void activateAPMode();
 void handleRoot();
 void handleNotFound();
@@ -46,7 +52,7 @@ void doRotatingColorFade();
 void doSolidColors();
 
 // State variables
-ulong actionDelay = 50ul;
+ulong actionDelay = 70ul;
 void (*currentAction)() = &doFlashingColors;
 CRGB actionColors[MAX_COLORS];
 uint actionColorsSize = 1u;
@@ -59,6 +65,8 @@ std::map<String, void (*)()> actions{
   {"solidColors", &doSolidColors}
 };
 
+Settings settings;
+
 /**
  * -----
  * SETUP
@@ -68,6 +76,17 @@ std::map<String, void (*)()> actions{
  * applicaiton and it components happens.
  */
 void setup() { 
+  settings.loadSettings();
+  actionDelay = settings.getActionDelay();
+  currentAction = actions[settings.getActionName()];
+  actionColorsSize = settings.getColorsSize();
+  String colorsString = settings.getColors();
+  String colorsArray[MAX_COLORS] = {"000000"};
+  Utils::split(colorsString, ':', colorsArray, MAX_COLORS);
+  for (uint i = 0; i < MAX_COLORS; i++) {
+    actionColors[i] = rgbStringToColor(colorsArray[i], 0u);
+  }
+
   // Initialize LEDs
   actionColors[0] = CRGB::Red;
   FastLED.addLeds<WS2812B, DATA_PIN, GRB>(leds, NUM_LEDS);
@@ -82,7 +101,7 @@ void setup() {
 
   // Activate web server
   server.on("/", handleRoot); 
-  server.onNotFound(handleNotFound);
+  server.onNotFound(handleRoot);
   server.begin();
 }
 
@@ -99,6 +118,7 @@ void setup() {
 void loop() {
   static ulong counter = 0;
   if ((counter++) % PRIORITY_REDUCER == 0) { 
+    dnsServer.processNextRequest();
     server.handleClient();
   }
   
@@ -116,17 +136,36 @@ void activateAPMode() {
   WiFi.setOutputPower(20.5F);
   WiFi.setHostname(deviceId.c_str());
   WiFi.mode(WiFiMode::WIFI_AP);
-  WiFi.softAPConfig(
-    IpUtils::stringIPv4ToIPAddress("192.168.1.1"), 
-    IpUtils::stringIPv4ToIPAddress("0.0.0.0"), 
-    IpUtils::stringIPv4ToIPAddress("255.255.255.0")
-  );
+  WiFi.softAPConfig(AP_IP, AP_IP, SUBNET);
 
   String ssid = "Strobbie_";
   ssid.concat(deviceId);
   String pwd = "Str0bb13";
   
   WiFi.softAP(ssid, pwd);
+  dnsServer.start(53u, "*", AP_IP);
+}
+
+/**
+ * UTILITY FUNCTION
+ * ----------------
+ * This is a utility function which converts a RGB String to a CRGB color object.
+ * This method allows for a begin index to be supplied which determines where 
+ * parsing of the color hex digits begins in the given string. This can be useful
+ * particularly when working with color codes that begin with a '#'.
+ * 
+ * @param rgbString - The RGB hex code as a String.
+ * @param beginIndex - The index from which to begin parsing the RGB hex code as uint.
+ */
+CRGB rgbStringToColor(String rgbString, uint beginIndex) {
+  uint8 red = Utils::hexTo8BitDecimal(rgbString.substring(beginIndex, beginIndex + 2));
+  uint8 green = Utils::hexTo8BitDecimal(rgbString.substring(beginIndex + 2, beginIndex + 4));
+  uint8 blue = Utils::hexTo8BitDecimal(rgbString.substring(beginIndex + 4, beginIndex + 6));
+          
+  CRGB color; 
+  color.setRGB(red, green, blue);
+
+  return color;
 }
 
 /**
@@ -152,14 +191,7 @@ void handleRoot() {
       }
       for (uint i = 0; i < tempColorsSize; i++) {
         if (!colorHex[i].isEmpty()) {
-          uint8 red = Utils::hexTo8BitDecimal(colorHex[i].substring(1, 3));
-          uint8 green = Utils::hexTo8BitDecimal(colorHex[i].substring(3, 5));
-          uint8 blue = Utils::hexTo8BitDecimal(colorHex[i].substring(5, 7));
-          
-          CRGB color; 
-          color.setRGB(red, green, blue);
-          
-          tempColors[i] = color;
+          tempColors[i] = rgbStringToColor(colorHex[i], 1u);
         }
       }
       if (tempColorsSize < MAX_COLORS) {
@@ -178,14 +210,7 @@ void handleRoot() {
       }
       for (uint i = 0; i < tempColorsSize; i++) {
         if (!colorHex[i].isEmpty()) {
-          uint8 red = Utils::hexTo8BitDecimal(colorHex[i].substring(1, 3));
-          uint8 green = Utils::hexTo8BitDecimal(colorHex[i].substring(3, 5));
-          uint8 blue = Utils::hexTo8BitDecimal(colorHex[i].substring(5, 7));
-          
-          CRGB color; 
-          color.setRGB(red, green, blue);
-
-          tempColors[i] = color;
+          tempColors[i] = rgbStringToColor(colorHex[i], 1);
         }
       }
 
@@ -203,13 +228,26 @@ void handleRoot() {
       String action = server.arg("action");
       String delay = server.arg("changeDelay");
       String colorHex[tempColorsSize];
+      String colorsString = "";
 
       // Get color settings
       for (uint i = 0; i < tempColorsSize; i++) {
         String argName = "selectColor";
         argName.concat(String(i));
         colorHex[i] = server.arg(argName);
+        if (colorsString.isEmpty()) {
+          colorsString.concat(colorHex[i]);
+        } else {
+          colorsString.concat(":");
+          colorsString.concat(colorHex[i]);
+        }
       }
+
+      // Save updated settings
+      settings.setActionDelay((unsigned long) delay.toDouble());
+      settings.setActionName(action);
+      settings.setColors(colorsString);
+      settings.setColorsSize(tempColorsSize);
 
       // TODO: Verify incoming data!!!
       
@@ -220,12 +258,7 @@ void handleRoot() {
       tempDelay = actionDelay;
       for (uint i = 0; i < tempColorsSize; i++) {
         if (!colorHex[i].isEmpty()) {
-          uint8 red = Utils::hexTo8BitDecimal(colorHex[i].substring(1, 3));
-          uint8 green = Utils::hexTo8BitDecimal(colorHex[i].substring(3, 5));
-          uint8 blue = Utils::hexTo8BitDecimal(colorHex[i].substring(5, 7));
-          
-          CRGB color; 
-          color.setRGB(red, green, blue);
+          CRGB color = rgbStringToColor(colorHex[i], 1); 
 
           actionColors[i] = color;
           tempColors[i] = color;
@@ -303,14 +336,6 @@ void handleRoot() {
 
   // Send the built page
   server.send(200, "text/html", pageTemplate);
-}
-
-/**
- * This funciton handles when a requested resource is not found.
- * 
- */
-void handleNotFound() {
-  server.send(404, "text/html", "<html><bode><strong>Oops, you broke it!</strong></body></html>");
 }
 
 /**
