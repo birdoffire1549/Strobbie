@@ -28,7 +28,7 @@
 #include <Lighting.h>
 
 // Constants defined
-const String VERSION = "1.2.0";
+const String VERSION = "1.2.1";
 const unsigned int PRIORITY_REDUCER =  70u;
 const IPAddress AP_IP(192, 168, 1, 1);
 const IPAddress SUBNET(255, 255, 255, 0);
@@ -45,10 +45,15 @@ void handleRoot();
 String deviceId = "";
 int priorityCount = 0;
 
-std::map<String, void (*)()> actions{
+std::map<String, void (*)()> actions {
   {"allOff", &doAllOff},
   {"flashingColors", &doFlashingColors},
-  {"rotatingColorFade", &doRotatingColorFade},
+  // {"rotatingColorFade", &doRotatingColorFade},
+  // {"oneDirectionChase", &doOneDirectionChase},
+  // {"backAndForthChase", &doBackAndForthChase},
+  // {"trainChase", &doTrainChase},
+  // {"inwardChevronChase", &doInwardChevronChase},
+  // {"outwardChevronChase", &doOutwardChevronChase},
   {"solidColors", &doSolidColors}
 };
 

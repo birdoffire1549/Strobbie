@@ -13,6 +13,11 @@
     void doFlashingColors();
     void doRotatingColorFade();
     void doSolidColors();
+    void doOneDirectionChase();
+    void doBackAndForthChase();
+    void doTrainChase();
+    void doInwardChevronChase();
+    void doOutwardChevronChase();
     CRGB rgbStringToColor(String rgbString, uint beginIndex);
 
 
@@ -88,8 +93,28 @@
      * 
      */
     void doRotatingColorFade() {
-        // FIXME: This is a soon to come feature.
+        // TODO: Coming Soon...
     };
+
+    void doOneDirectionChase() {
+        // TODO: Coming Soon...
+    }
+
+    void doBackAndForthChase() {
+        // TODO: Coming Soon...
+    }
+
+    void doTrainChase() {
+        // TODO: Coming Soon...
+    }
+
+    void doInwardChevronChase() {
+        // TODO: Coming Soon...
+    }
+
+    void doOutwardChevronChase() {
+        // TODO: Coming Soon...
+    }
 
     /**
      * Turns off all the LEDS

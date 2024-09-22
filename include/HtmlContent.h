@@ -14,7 +14,6 @@
             "<option value=\"allOff\" ${allOff_sel}>Lights Off</option>"
             "<option value=\"solidColors\" ${solidColors_sel}>Solid Color Light</option>"
             "<option value=\"flashingColors\" ${flashingColors_sel}>Flashing Color</option>"
-            "<option value=\"rotatingColorFade\" ${rotatingColorFade_sel}>Rotating Color Fader</option>"
             "</select>"
             "<br />"
             "<label for=\"changeDelay\">Change delay in millis:</label>"
