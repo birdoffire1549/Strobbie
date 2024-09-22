@@ -45,8 +45,10 @@
     void doFlashingColors() {
         static CRGB lastColor = CRGB::Black;
         static ulong lastChange = 0ul;
+        static ulong milliWather = 0ul;
 
-        if (millis() - lastChange >= actionDelay) {
+        if (millis() - lastChange >= actionDelay || milliWather > millis()) {
+            milliWather = millis();
             CRGB nextColor;
             // Time to do an update
             if (actionColorsSize == 1) {
@@ -97,22 +99,25 @@
     };
 
     void doOneDirectionChase() {
-        static uint headIndex = 0u;
+        static int headIndex = 0;
         static uint currColorIndex = 0u;
         static ulong lastChange = 0ul;
+        static ulong milliWatcher = 0ul;
 
-        if (millis() - lastChange >= actionDelay) {
+        if (millis() - lastChange >= actionDelay || milliWatcher > millis()) {
+            milliWatcher = millis();
             for (uint i = 0u; i < NUM_LEDS; i++) {
-                if (headIndex - 3 < NUM_LEDS) {
+                if (headIndex < NUM_LEDS) {
                     // Move the group forward...
-                    leds[i] = i < headIndex - 3 || i > headIndex ? CRGB::Black : actionColors[currColorIndex];
-                    headIndex ++;
+                    leds[i] = (i != headIndex ? CRGB::Black : actionColors[currColorIndex]);
                 } else {
                     // Pick next color and reset the head...
-                    currColorIndex = (currColorIndex + 1 == actionColorsSize ? 0u : currColorIndex + 1);
-                    headIndex = 0u; 
+                    currColorIndex = (currColorIndex + 1 == actionColorsSize ? 0u : currColorIndex + 1u);
+                    headIndex = 0; 
                 }
             }
+            headIndex ++;
+            lastChange = millis();
             FastLED.show();
         }
     }
