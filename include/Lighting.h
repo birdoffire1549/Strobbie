@@ -97,7 +97,24 @@
     };
 
     void doOneDirectionChase() {
-        // TODO: Coming Soon...
+        static uint headIndex = 0u;
+        static uint currColorIndex = 0u;
+        static ulong lastChange = 0ul;
+
+        if (millis() - lastChange >= actionDelay) {
+            for (uint i = 0u; i < NUM_LEDS; i++) {
+                if (headIndex - 3 < NUM_LEDS) {
+                    // Move the group forward...
+                    leds[i] = i < headIndex - 3 || i > headIndex ? CRGB::Black : actionColors[currColorIndex];
+                    headIndex ++;
+                } else {
+                    // Pick next color and reset the head...
+                    currColorIndex = (currColorIndex + 1 == actionColorsSize ? 0u : currColorIndex + 1);
+                    headIndex = 0u; 
+                }
+            }
+            FastLED.show();
+        }
     }
 
     void doBackAndForthChase() {
