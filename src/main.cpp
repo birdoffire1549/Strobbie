@@ -8,7 +8,7 @@
   a strip of individually addressable LEDs for the purpose of performing 
   various light display routeens. The ESP8266 not only acts as the controller
   for the lights but it also serves up a WiFi Access Point that one can connect
-  to and then access a webpage hosted the the device which also allows for 
+  to and then access a webpage hosted by the device which also allows for 
   the lights to be controlled in various ways.
 
   Originally this software was written so that a light strip places inside a white
@@ -24,48 +24,33 @@
 #include <Utils.h>
 #include <IpUtils.h>
 #include <Settings.h>
+#include <HtmlContent.h>
+#include <Lighting.h>
 
-#define DATA_PIN 5
-#define NUM_LEDS 11
-
-const String VERSION = "1.1.0";
-const unsigned int MAX_COLORS = 3u;
+// Constants defined
+const String VERSION = "1.2.0";
 const unsigned int PRIORITY_REDUCER =  70u;
 const IPAddress AP_IP(192, 168, 1, 1);
 const IPAddress SUBNET(255, 255, 255, 0);
 
-// Define the array of leds
-CRGB leds[NUM_LEDS];
+// Define Services
 DNSServer dnsServer;
 ESP8266WebServer server(80);
+Settings settings;
 
-String deviceId = "";
-
-CRGB rgbStringToColor(String rgbString, uint beginIndex);
+// General Function prototypes
 void activateAPMode();
 void handleRoot();
-void handleNotFound();
 
-// Action functions defined
-void doFlashingColors();
-void doRotatingColorFade();
-void doSolidColors();
-
-// State variables
-ulong actionDelay = 70ul;
-void (*currentAction)() = &doFlashingColors;
-CRGB actionColors[MAX_COLORS];
-uint actionColorsSize = 1u;
-
+String deviceId = "";
 int priorityCount = 0;
 
 std::map<String, void (*)()> actions{
+  {"allOff", &doAllOff},
   {"flashingColors", &doFlashingColors},
   {"rotatingColorFade", &doRotatingColorFade},
   {"solidColors", &doSolidColors}
 };
-
-Settings settings;
 
 /**
  * -----
@@ -76,6 +61,10 @@ Settings settings;
  * applicaiton and it components happens.
  */
 void setup() { 
+  // Generate Device ID Based On MAC Address
+  deviceId = Utils::genDeviceIdFromMacAddr(WiFi.macAddress());
+
+  // Load intial settings from flash memory
   settings.loadSettings();
   actionDelay = settings.getActionDelay();
   currentAction = actions[settings.getActionName()];
@@ -88,15 +77,32 @@ void setup() {
   }
 
   // Initialize LEDs
-  FastLED.addLeds<WS2812B, DATA_PIN, GRB>(leds, NUM_LEDS);
-  FastLED.clear();
-  FastLED.clearData();
-
-  // Generate Device ID Based On MAC Address
-  deviceId = Utils::genDeviceIdFromMacAddr(WiFi.macAddress());
+  initLighting();
 
   // Activate AP
   activateAPMode();
+}
+
+/**
+ * Puts the device into AP Mode so that user can
+ * connect via WiFi directly to the device to configure
+ * the device.
+ */
+void activateAPMode() {
+  WiFi.setSleepMode(WIFI_NONE_SLEEP);
+  WiFi.setOutputPower(20.5F);
+  WiFi.setHostname(deviceId.c_str());
+  WiFi.mode(WiFiMode::WIFI_AP);
+  WiFi.softAPConfig(AP_IP, AP_IP, SUBNET);
+
+  String ssid = "Strobbie_";
+  ssid.concat(deviceId);
+  String pwd = "Str0bb13";
+  
+  WiFi.softAP(ssid, pwd);
+
+  // Activate captive portal
+  dnsServer.start(53u, "*", AP_IP);
 
   // Activate web server
   server.on("/", handleRoot); 
@@ -123,48 +129,6 @@ void loop() {
   
   // Priority process
   currentAction();
-}
-
-/**
- * Puts the device into AP Mode so that user can
- * connect via WiFi directly to the device to configure
- * the device.
- */
-void activateAPMode() {
-  WiFi.setSleepMode(WIFI_NONE_SLEEP);
-  WiFi.setOutputPower(20.5F);
-  WiFi.setHostname(deviceId.c_str());
-  WiFi.mode(WiFiMode::WIFI_AP);
-  WiFi.softAPConfig(AP_IP, AP_IP, SUBNET);
-
-  String ssid = "Strobbie_";
-  ssid.concat(deviceId);
-  String pwd = "Str0bb13";
-  
-  WiFi.softAP(ssid, pwd);
-  dnsServer.start(53u, "*", AP_IP);
-}
-
-/**
- * UTILITY FUNCTION
- * ----------------
- * This is a utility function which converts a RGB String to a CRGB color object.
- * This method allows for a begin index to be supplied which determines where 
- * parsing of the color hex digits begins in the given string. This can be useful
- * particularly when working with color codes that begin with a '#'.
- * 
- * @param rgbString - The RGB hex code as a String.
- * @param beginIndex - The index from which to begin parsing the RGB hex code as uint.
- */
-CRGB rgbStringToColor(String rgbString, uint beginIndex) {
-  uint8 red = Utils::hexTo8BitDecimal(rgbString.substring(beginIndex, beginIndex + 2));
-  uint8 green = Utils::hexTo8BitDecimal(rgbString.substring(beginIndex + 2, beginIndex + 4));
-  uint8 blue = Utils::hexTo8BitDecimal(rgbString.substring(beginIndex + 4, beginIndex + 6));
-          
-  CRGB color; 
-  color.setRGB(red, green, blue);
-
-  return color;
 }
 
 /**
@@ -272,39 +236,8 @@ void handleRoot() {
     }
   }
   
-  // Define the page template
-  String pageTemplate = 
-    "<!DOCTYPE html><html><body>"
-      "<h1>Strobbie V${appVersion}</h1>"
-      "<form action=\"/\" method=\"post\">"
-        "<label for=\"action\">Action:</label>"
-        "<select id=\"action\" name=\"action\">"
-          "<option value=\"solidColors\" ${solidColors_sel}>Solid Color Light</option>"
-          "<option value=\"flashingColors\" ${flashingColors_sel}>Flashing Color</option>"
-          "<option value=\"rotatingColorFade\" ${rotatingColorFade_sel}>Rotating Color Fader</option>"
-        "</select>"
-        "<br />"
-        "<label for=\"changeDelay\">Change delay in millis:</label>"
-        "<input type=\"number\" id=\"changeDelay\" name=\"changeDelay\" value=${changeDelay}><br />"
-        "Add another color to action: "
-        "<button type=\"submit\" name=\"do\" value=\"add\" ${add_disable}>Add</button> ${add_disableMessage}"
-        "<hr />"
-        "${selectedColors}"
-        "<br /><br /><button type=\"submit\" name=\"do\" value=\"update\">Update</button>"
-      "</form>"
-    "</body></html>"
-  ;
-
-  // Define a single color selection item template
-  String selectedColorTemplate = 
-    "<p>"
-      "<label for=\"selectColor${colorNumber}\">Color #${colorNumber}:</label>"
-      "<input type=\"color\" id=\"selectColor${colorNumber}\" name=\"selectColor${colorNumber}\" value=\"#${selectColor}\">"
-      "<button type=\"submit\" name=\"do\" value=\"remove:${colorNumber}\" ${remove_disable}>Remove</button>"
-    "</p><hr />"
-  ;
-  
   // Set general page data
+  String pageTemplate = HTML_MAIN_PAGE_TEMPLATE;
   pageTemplate.replace("${appVersion}", VERSION);
 
   // Set the appropriate Action that is Selected
@@ -322,7 +255,7 @@ void handleRoot() {
   // Build out the Color Section of the page
   String colorSection = "";
   for (uint i = 0u; i < tempColorsSize; i++) {
-    String temp = selectedColorTemplate;
+    String temp = HTML_COLOR_SELECTION_SECTION_TEMPLATE;
     temp.replace("${colorNumber}", String(i));
     temp.replace("${colorNumber}", String(i));
     temp.replace("${colorNumber}", String(i));
@@ -340,80 +273,4 @@ void handleRoot() {
 
   // Send the built page
   server.send(200, "text/html", pageTemplate);
-}
-
-/**
- * This function is used to flash the LEDs, this can be a 
- * single color on and off or between any number of colors.
- * 
- */
-void doFlashingColors() {
-  static CRGB lastColor = CRGB::Black;
-  static ulong lastChange = 0ul;
-
-  if (millis() - lastChange >= actionDelay) {
-    CRGB nextColor;
-    // Time to do an update
-    if (actionColorsSize == 1) {
-      if (lastColor == actionColors[0]) {
-        nextColor = CRGB::Black;
-      } else {
-        nextColor = actionColors[0];
-      }
-    } else {
-      // Find the next color from actionColors
-      bool nextFound = false;
-      for (uint i = 0u; i < actionColorsSize; i++) {
-        if (actionColors[i] == lastColor) {
-          nextFound = true;
-          if (i == actionColorsSize - 1) {
-            nextColor = actionColors[0];
-          } else {
-            nextColor = actionColors[(i + 1)];
-          }
-
-          break;
-        }
-      }
-      if (!nextFound) {
-        nextColor = actionColors[0];
-      }
-    }
-    // Serial.printf("Color0: rgb(%d, %d, %d)\n", nextColor.red, nextColor.green, nextColor.blue);
-    // Display the change
-    for (int i = 0; i < NUM_LEDS; i++) {
-      leds[i] = nextColor;
-    }
-    FastLED.show();
-
-    // Update state
-    lastColor = nextColor;
-    lastChange = millis();
-  }
-}
-
-/**
- * Fades from one color to the next where the colors overlap some.
- * Uses about half of the LEDs when color solid.
- * 
- */
-void doRotatingColorFade() {
-  // FIXME: This is a soon to come feature.
-}
-
-/**
- * 
- */
-void doSolidColors() {
-  uint largeGroupSize = NUM_LEDS / actionColorsSize;
-  uint smallGroupSize = largeGroupSize % actionColorsSize == 0u ? largeGroupSize / actionColorsSize : (largeGroupSize / actionColorsSize) + 1u;
-
-  uint colorIndex = 0u;
-  // Iterate the LEDs
-  for (uint i = 1u; i <= NUM_LEDS; i++) {
-    // If a color group is filled and there are more colors, use next color otherwise go back to first color
-    colorIndex = (i % smallGroupSize == 0u ? (colorIndex < actionColorsSize - 1u ? colorIndex + 1u : colorIndex = 0u) : colorIndex);
-    leds[i - 1u] = actionColors[colorIndex];
-  }
-  FastLED.show();
 }

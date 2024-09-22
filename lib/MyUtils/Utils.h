@@ -52,7 +52,7 @@
             static String rgbDecimalsToHex(uint8 red, uint8 green, uint8 blue);
             static String decimalTo8BitHex(uint8 dec);
             static uint8 hexTo8BitDecimal(String hex);
-            static void split(String string, char separator, String *storage, int sizeOfStorage);
+            static void split(String string, char separator, String *storage, unsigned int sizeOfStorage);
     };
 
 #endif

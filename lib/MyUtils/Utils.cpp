@@ -76,7 +76,7 @@ String Utils::rgbDecimalsToHex(uint8 red, uint8 green, uint8 blue) {
  * @param storage - An array of strings for storage of the results of the splitting process.
  * @param sizeOfStorage - The size of the storage array provided.
 */
-void Utils::split(String string, char separator, String *storage, int sizeOfStorage) {
+void Utils::split(String string, char separator, String *storage, unsigned int sizeOfStorage) {
   unsigned int index = 0;
   for (unsigned int segmentIndex = 0; segmentIndex < sizeOfStorage && index < string.length(); segmentIndex++) { // iterate segment storage...
     unsigned int startIndex = index;
