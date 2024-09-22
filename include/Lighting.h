@@ -123,7 +123,34 @@
     }
 
     void doBackAndForthChase() {
-        // TODO: Coming Soon...
+        static int headIndex = -1;
+        static bool forward = true;
+        static uint currColorIndex = 0u;
+        static ulong lastChange = 0ul;
+        static ulong milliWatcher = 0ul;
+
+        if (millis() - lastChange >= actionDelay || milliWatcher > millis()) {
+            milliWatcher = millis();
+            for (uint i = 0u; i <= NUM_LEDS; i++) {
+                if ((headIndex < NUM_LEDS && forward) || (headIndex > -1 && !forward)) {
+                    // Move the group forward...
+                    leds[i] = (i != headIndex ? CRGB::Black : actionColors[currColorIndex]);
+                } else if (forward) {
+                    forward = false; 
+                } else {
+                    // Pick next color and reset the head...
+                    currColorIndex = (currColorIndex + 1 == actionColorsSize ? 0u : currColorIndex + 1u); 
+                    forward = true;
+                }
+            }
+            if (forward) {
+                headIndex ++;
+            } else {
+                headIndex --;
+            }
+            lastChange = millis();
+            FastLED.show();
+        }
     }
 
     void doTrainChase() {

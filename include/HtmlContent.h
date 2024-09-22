@@ -15,6 +15,7 @@
             "<option value=\"solidColors\" ${solidColors_sel}>Solid Color Light</option>"
             "<option value=\"flashingColors\" ${flashingColors_sel}>Flashing Color</option>"
             "<option value=\"oneDirectionChase\" ${oneDirectionChase_sel}>One Direction Chase</option>"
+            "<option value=\"backAndForthChase\" ${backAndForthChase_sel}>Back & Forth Chase</option>"
             "</select>"
             "<br />"
             "<label for=\"changeDelay\">Change delay in millis:</label>"

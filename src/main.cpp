@@ -28,7 +28,7 @@
 #include <Lighting.h>
 
 // Constants defined
-const String VERSION = "1.3.4";
+const String VERSION = "1.4.2";
 const unsigned int PRIORITY_REDUCER =  70u;
 const IPAddress AP_IP(192, 168, 1, 1);
 const IPAddress SUBNET(255, 255, 255, 0);
@@ -50,7 +50,7 @@ std::map<String, void (*)()> actions {
   {"flashingColors", &doFlashingColors},
   {"oneDirectionChase", &doOneDirectionChase},
   // {"rotatingColorFade", &doRotatingColorFade},
-  // {"backAndForthChase", &doBackAndForthChase},
+  {"backAndForthChase", &doBackAndForthChase},
   // {"trainChase", &doTrainChase},
   // {"inwardChevronChase", &doInwardChevronChase},
   // {"outwardChevronChase", &doOutwardChevronChase},
@@ -250,6 +250,7 @@ void handleRoot() {
   pageTemplate.replace("${rotatingColorFade_sel}", (tempAction == "rotatingColorFade") ? "selected" : "");
   pageTemplate.replace("${solidColors_sel}", (tempAction == "solidColors") ? "selected" : "");
   pageTemplate.replace("${oneDirectionChase_sel}", (tempAction == "oneDirectionChase") ? "selected" : "");
+  pageTemplate.replace("${backAndForthChase_sel}", (tempAction == "backAndForthChase") ? "selected" : "");
 
   // Set the action delay time
   pageTemplate.replace("${changeDelay}", String(tempDelay));
