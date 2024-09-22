@@ -113,7 +113,7 @@
         // Iterate the LEDs
         for (uint i = 1u; i <= NUM_LEDS; i++) {
             // If a color group is filled and there are more colors, use next color otherwise go back to first color
-            colorIndex = (i % smallGroupSize == 0u ? (colorIndex < actionColorsSize - 1u ? colorIndex + 1u : colorIndex = 0u) : colorIndex);
+            colorIndex = (i % smallGroupSize == 0u ? (colorIndex < actionColorsSize - 1u ? colorIndex + 1u : 0u) : colorIndex);
             leds[i - 1u] = actionColors[colorIndex];
         }
         FastLED.show();
