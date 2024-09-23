@@ -28,7 +28,7 @@
 #include <Lighting.h>
 
 // Constants defined
-const String VERSION = "1.4.2";
+const String VERSION = "1.5.0";
 const unsigned int PRIORITY_REDUCER =  70u;
 const IPAddress AP_IP(192, 168, 1, 1);
 const IPAddress SUBNET(255, 255, 255, 0);
@@ -44,18 +44,6 @@ void handleRoot();
 
 String deviceId = "";
 int priorityCount = 0;
-
-std::map<String, void (*)()> actions {
-  {"allOff", &doAllOff},
-  {"flashingColors", &doFlashingColors},
-  {"oneDirectionChase", &doOneDirectionChase},
-  // {"rotatingColorFade", &doRotatingColorFade},
-  {"backAndForthChase", &doBackAndForthChase},
-  // {"trainChase", &doTrainChase},
-  // {"inwardChevronChase", &doInwardChevronChase},
-  // {"outwardChevronChase", &doOutwardChevronChase},
-  {"solidColors", &doSolidColors}
-};
 
 /**
  * -----
@@ -246,12 +234,15 @@ void handleRoot() {
   pageTemplate.replace("${appVersion}", VERSION);
 
   // Set the appropriate Action that is Selected
-  pageTemplate.replace("${flashingColors_sel}", (tempAction == "flashingColors") ? "selected" : "");
-  pageTemplate.replace("${rotatingColorFade_sel}", (tempAction == "rotatingColorFade") ? "selected" : "");
-  pageTemplate.replace("${solidColors_sel}", (tempAction == "solidColors") ? "selected" : "");
-  pageTemplate.replace("${oneDirectionChase_sel}", (tempAction == "oneDirectionChase") ? "selected" : "");
-  pageTemplate.replace("${backAndForthChase_sel}", (tempAction == "backAndForthChase") ? "selected" : "");
-
+  std::map<String, void (*)()>::iterator it = actions.begin();
+  while (it != actions.end()) {
+    String tempVar = "${"; 
+    tempVar.concat(it->first);
+    tempVar.concat("_sel}");
+    pageTemplate.replace(tempVar, (tempAction == it->first) ? "selected" : "");  
+    ++it;
+  }
+  
   // Set the action delay time
   pageTemplate.replace("${changeDelay}", String(tempDelay));
   

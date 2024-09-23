@@ -16,6 +16,7 @@
             "<option value=\"flashingColors\" ${flashingColors_sel}>Flashing Color</option>"
             "<option value=\"oneDirectionChase\" ${oneDirectionChase_sel}>One Direction Chase</option>"
             "<option value=\"backAndForthChase\" ${backAndForthChase_sel}>Back & Forth Chase</option>"
+            "<option value=\"inwardChevronChase\" ${inwardChevronChase_sel}>Inward Cheveron Chase</option>"
             "</select>"
             "<br />"
             "<label for=\"changeDelay\">Change delay in millis:</label>"

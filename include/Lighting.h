@@ -20,6 +20,17 @@
     void doOutwardChevronChase();
     CRGB rgbStringToColor(String rgbString, uint beginIndex);
 
+    std::map<String, void (*)()> actions {
+        {"allOff", &doAllOff},
+        {"flashingColors", &doFlashingColors},
+        {"oneDirectionChase", &doOneDirectionChase},
+        // {"rotatingColorFade", &doRotatingColorFade},
+        {"backAndForthChase", &doBackAndForthChase},
+        // {"trainChase", &doTrainChase},
+        {"inwardChevronChase", &doInwardChevronChase},
+        // {"outwardChevronChase", &doOutwardChevronChase},
+        {"solidColors", &doSolidColors}
+    };
 
     // Define the array of leds
     CRGB leds[NUM_LEDS];
@@ -28,7 +39,7 @@
     ulong actionDelay = 70ul;
     void (*currentAction)() = &doFlashingColors;
     CRGB actionColors[MAX_COLORS];
-    uint actionColorsSize = 1u;
+    uint actionColorsSize = 1u;    
 
     void initLighting() {
         // Initialize LEDs
@@ -154,11 +165,39 @@
     }
 
     void doTrainChase() {
+
         // TODO: Coming Soon...
     }
 
     void doInwardChevronChase() {
-        // TODO: Coming Soon...
+        static int firstIndex = 0;
+        static uint secondIndex = NUM_LEDS - 1;
+        static uint actionColorIndex = 0u;
+        static ulong lastChange = 0ul;
+        static ulong rolloverWatcher = 0ul;
+
+        if (millis() - lastChange >= actionDelay || rolloverWatcher > millis()) {
+            rolloverWatcher = millis();
+
+            uint firstLastIndex = ((NUM_LEDS - 1) / 2u) + ((NUM_LEDS - 1) % 2u);
+            uint halfLength = firstLastIndex + 1u;
+
+            for (uint i = 0u; i <= halfLength; i++) {
+                if (firstIndex != firstLastIndex + 1) {
+                    leds[i] = (i == firstIndex ? actionColors[actionColorIndex] : CRGB::Black);
+                    uint n = NUM_LEDS - 1 - i;
+                    leds[n] = (n == secondIndex ? actionColors[actionColorIndex] : CRGB::Black);    
+                } else {
+                    firstIndex = -1;
+                    secondIndex = NUM_LEDS;
+                    actionColorIndex = (actionColorIndex < actionColorsSize - 1 ? actionColorIndex + 1 : 0u);
+                }
+            }
+            firstIndex ++;
+            secondIndex --;
+            FastLED.show();
+            lastChange = millis();
+        }
     }
 
     void doOutwardChevronChase() {
@@ -166,7 +205,8 @@
     }
 
     /**
-     * Turns off all the LEDS
+     * Turns off all the LEDS by settings their values to
+     * Black.
      * 
      */
     void doAllOff() {
@@ -177,7 +217,8 @@
     };
 
     /**
-     * 
+     * Displays the colors chosen in a sequencial unchanging
+     * solid pattern all at once.
      */
     void doSolidColors() {
         uint largeGroupSize = NUM_LEDS / actionColorsSize;
