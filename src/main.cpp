@@ -15,6 +15,8 @@
   pool noodle could be used as a colored strobe light for a halloween display.
 */
 
+#define FIRMWARE_VERSION "2.0.0"
+
 #include <FastLED.h>
 #include <ESP8266WiFi.h>
 #include <DNSServer.h>
@@ -28,7 +30,6 @@
 #include <Lighting.h>
 
 // Constants defined
-const String VERSION = "1.5.0";
 const unsigned int PRIORITY_REDUCER =  70u;
 const IPAddress AP_IP(192, 168, 1, 1);
 const IPAddress SUBNET(255, 255, 255, 0);
@@ -231,7 +232,7 @@ void handleRoot() {
   
   // Set general page data
   String pageTemplate = HTML_MAIN_PAGE_TEMPLATE;
-  pageTemplate.replace("${appVersion}", VERSION);
+  pageTemplate.replace("${appVersion}", FIRMWARE_VERSION);
 
   // Set the appropriate Action that is Selected
   std::map<String, void (*)()>::iterator it = actions.begin();
